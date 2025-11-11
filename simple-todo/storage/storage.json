@@ -1,6 +1,14 @@
 [
   {
     "name": "Groceries",
+    "completed": true
+  },
+  {
+    "name": "Nico's Weg",
+    "completed": false
+  },
+  {
+    "name": "Call Mum",
     "completed": false
   }
 ]

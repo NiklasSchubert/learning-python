@@ -3,11 +3,5 @@ class TodoItem:
         self.name = name
         self.completed = completed
 
-    def markCompleted(self):
-        self.completed = True
-
-    def markIncomplete(self):
-        self.completed = False
-
     def __str__(self) -> str:
         return self.name
