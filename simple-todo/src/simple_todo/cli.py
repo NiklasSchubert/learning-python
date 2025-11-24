@@ -1,11 +1,12 @@
 from enum import Enum, auto
 from os import name, system
 from typing import Callable
+from storage.storage_json import JsonTodoStorage
 from todo_list import TodoList
 from todo_item import TodoItem
 
 
-class Option(Enum):
+class CliOption(Enum):
     SHOW_TODOS = auto()
     ADD_TODO = auto()
     REMOVE_TODO = auto()
@@ -14,83 +15,79 @@ class Option(Enum):
     EXIT = auto()
 
 
-TODO_LIST = TodoList()
+class Cli:
+    _TODO_LIST = TodoList(JsonTodoStorage("./storage"))
 
+    def _callFunction(self, option: CliOption) -> None | bool:
+        FUNCTION_MAP: dict[CliOption, Callable[[], None | bool]] = {
+            CliOption.SHOW_TODOS: self._showTodos,
+            CliOption.ADD_TODO: self._addTodo,
+            CliOption.REMOVE_TODO: self._removeTodo,
+            CliOption.MARK_AS_COMPLETE: self._markAsComplete,
+            CliOption.MARK_AS_INCOMPLETE: self._markAsIncomplete,
+            CliOption.EXIT: self._exit,
+        }
 
-def showTodos() -> None:
-    print("Action: Show Todos")
-    if len(TODO_LIST.items()) == 0:
-        print("No Todos available. Start by creating one.")
-    else:
-        for INDEX, TODO in enumerate(TODO_LIST.items()):
-            print(f"{INDEX}: {TODO} [{"✓" if TODO.completed else "x"}]")
+        return FUNCTION_MAP[option]()
 
+    def _showTodos(self) -> None:
+        print("Action: Show Todos")
+        empty = True
+        for INDEX, TODO in enumerate(self._TODO_LIST.items()):
+            empty = False
+            print(f"{INDEX}: {TODO}")
+        if empty:
+            print("No Todos available. Start by creating one.")
 
-def addTodo() -> None:
-    print("Action: Create Todo")
-    NAME: str = input("Enter the name: ")
-    TODO_ITEM = TodoItem(NAME, False)
-    TODO_LIST.addTodoItem(TODO_ITEM)
+    def _addTodo(self) -> None:
+        print("Action: Create Todo")
+        NAME: str = input("Enter the name: ")
+        TODO_ITEM = TodoItem(NAME, False)
+        self._TODO_LIST.addItem(TODO_ITEM)
 
+    def _removeTodo(self) -> None:
+        print("Action: Remove Todo")
+        self._showTodos()
+        INDEX: int = int(input("Enter the index of the todo: "))
+        self._TODO_LIST.removeItem(INDEX)
 
-def removeTodo() -> None:
-    print("Action: Remove Todo")
-    showTodos()
-    INDEX: int = int(input("Enter the index of the todo: "))
-    TODO_LIST.removeTodoItem(INDEX)
+    def _markAsComplete(self) -> None:
+        print("Action: Mark as Complete")
+        self._showTodos()
+        INDEX: int = int(input("Which Todo Item has been completed?"))
+        self._TODO_LIST.getItem(INDEX).complete()
 
+    def _markAsIncomplete(self) -> None:
+        print("Action: Mark as Incomplete")
+        self._showTodos()
+        INDEX: int = int(input("Which Todo Item should be marked incomplete?"))
+        self._TODO_LIST.getItem(INDEX).incomplete()
 
-def markAsComplete() -> None:
-    print("Action: Mark as Complete")
-    showTodos()
-    INDEX = int(input("Which Todo Item has been completed?"))
-    TODO_LIST.markAsComplete(INDEX)
+    def _exit(self) -> bool:
+        self._TODO_LIST.writeStorage()
+        return True
 
+    def _askOption(self) -> CliOption | None:
+        for OPTION in CliOption:
+            print(f"{OPTION.value}: {OPTION.name}")
 
-def markAsIncomplete() -> None:
-    print("Action: Mark as Incomplete")
-    showTodos()
-    INDEX = int(input("Which Todo Item should be marked incomplete?"))
-    TODO_LIST.markAsIncomplete(INDEX)
+        try:
+            SELECTED_OPTION = int(input("Choose an options: "))
+            return CliOption(SELECTED_OPTION)
+        except ValueError:
+            return None
 
+    def start(self) -> None:
+        while True:
+            RESPONSE = self._askOption()
+            system("cls" if name == "nt" else "clear")
 
-def exit() -> bool:
-    TODO_LIST.writeStorage()
-    return True
+            if RESPONSE == None:
+                print("Invalid option \n")
+                continue
 
+            EXIT = self._callFunction(RESPONSE)
+            if EXIT:
+                break
 
-OPTION_FUNCTION_MAP: dict[Option, Callable[[], None | bool]] = {
-    Option.SHOW_TODOS: showTodos,
-    Option.ADD_TODO: addTodo,
-    Option.REMOVE_TODO: removeTodo,
-    Option.MARK_AS_COMPLETE: markAsComplete,
-    Option.MARK_AS_INCOMPLETE: markAsIncomplete,
-    Option.EXIT: exit,
-}
-
-
-def askOption() -> Option | None:
-    for OPTION in Option:
-        print(f"{OPTION.value}: {OPTION.name}")
-
-    try:
-        SELECTED_OPTION = int(input("Choose an options: "))
-        return Option(SELECTED_OPTION)
-    except ValueError:
-        return None
-
-
-def startCli() -> None:
-    while True:
-        RESPONSE = askOption()
-        system("cls" if name == "nt" else "clear")
-
-        if RESPONSE == None:
-            print("Invalid option \n")
-            continue
-
-        EXIT = OPTION_FUNCTION_MAP[RESPONSE]()
-        if EXIT:
-            break
-
-        print("\n")
+            print("\n")

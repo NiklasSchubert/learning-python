@@ -1,8 +1,9 @@
-from cli import startCli
+from cli import Cli
 
 
 def main():
-    startCli()
+    CLI = Cli()
+    CLI.start()
 
 
 if __name__ == "__main__":

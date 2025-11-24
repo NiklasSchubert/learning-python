@@ -1,12 +1,13 @@
-from storage.storage_json import JsonTodoStorage
+from storage.storage_base import TodoStorage
 from todo_item import TodoItem
+from typing import Iterator
 
 
 class TodoList:
     _todos: list[TodoItem] = []
-    STORAGE = JsonTodoStorage("./storage")
 
-    def __init__(self):
+    def __init__(self, storage: TodoStorage):
+        self.STORAGE = storage
         self._readStorage()
 
     def _readStorage(self) -> None:
@@ -15,22 +16,14 @@ class TodoList:
     def writeStorage(self) -> None:
         self.STORAGE.writeTodos(self._todos)
 
-    def items(self) -> tuple[TodoItem, ...]:
-        return tuple(self._todos)
+    def items(self) -> Iterator[TodoItem]:
+        return iter(self._todos)
 
-    def addTodoItem(self, todoItem: TodoItem) -> None:
+    def getItem(self, INDEX: int) -> TodoItem:
+        return self._todos[INDEX]
+
+    def addItem(self, todoItem: TodoItem) -> None:
         self._todos.append(todoItem)
 
-    def removeTodoItem(self, id: int) -> None:
+    def removeItem(self, id: int) -> None:
         self._todos.pop(id)
-
-    def updateTodoItem(self, id: int, todoItem: TodoItem) -> None:
-        self._todos[id] = todoItem
-
-    def markAsComplete(self, id: int) -> None:
-        CURRENT_ITEM = self.items()[id]
-        CURRENT_ITEM.completed = True
-
-    def markAsIncomplete(self, id: int) -> None:
-        CURRENT_ITEM = self.items()[id]
-        CURRENT_ITEM.completed = False

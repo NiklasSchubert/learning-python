@@ -3,5 +3,11 @@ class TodoItem:
         self.name = name
         self.completed = completed
 
+    def complete(self) -> None:
+        self.completed = True
+
+    def incomplete(self) -> None:
+        self.completed = False
+
     def __str__(self) -> str:
-        return self.name
+        return f"[{"✓" if self.completed else "x"}] {self.name}"
