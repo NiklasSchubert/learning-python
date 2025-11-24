@@ -1,13 +1,11 @@
-from .cli import CLI
+from .game.game import Game
+from .ui.cli import CLI
 from .word_loader.sensei_japanese_loader import SenseiJapaneseLoader
-from .mode.word_grid import WordGrid
-from pprint import pprint
-from .cli import WordSearchPuzzle
 
 
 def main():
     try:
-        CLI(LOADER=SenseiJapaneseLoader())
+        Game(LOADER=SenseiJapaneseLoader(), UI=CLI())
     except KeyboardInterrupt:
         print("Stopped by user.")
 

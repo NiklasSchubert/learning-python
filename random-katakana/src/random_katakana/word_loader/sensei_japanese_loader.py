@@ -2,7 +2,7 @@ from .word_loader import WordLoader
 from requests import get
 from lxml import etree
 from lxml.etree import _Element
-from ..word import Word
+from .word import Word
 
 
 class SenseiJapaneseLoader(WordLoader):
