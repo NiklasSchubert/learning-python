@@ -1,3 +1,4 @@
+from os import system
 from ..ui.ui import UI
 from ..word_loader.word import Word
 from ..word_loader.word_loader import WordLoader
@@ -25,10 +26,13 @@ class Game:
                     "What mode do you want to play?", self.GAME_OPTIONS
                 )
 
+                system("clear")
+
                 GAME_MODE = self.GAME_MODES.get(RESPONSE, None)
                 if GAME_MODE != None:
                     MODE = GAME_MODE(self._WORDS)
-                    MODE.question()
+                    RESPONSE = MODE.question()
+                    print(RESPONSE)
 
                 if RESPONSE == 3:
                     break

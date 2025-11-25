@@ -17,7 +17,7 @@ class StandardQuiz(Mode):
             REVEALED = f"{word[:REVEAL_COUNT]}{"_" * (LEGNTH - REVEAL_COUNT)}"
             yield REVEALED
 
-    def question(self) -> None:
+    def question(self) -> str:
         WORD: Word = choice(self.WORDS)
         KATAKANA: str = WORD.get("katakana")
         MEANING: str = WORD.get("meaning")
@@ -27,20 +27,24 @@ class StandardQuiz(Mode):
         current_hint = ""
 
         while True:
+            HINT_TEXT = f"Hint: {current_hint}" if current_hint != "" else ""
             ANSWER = input(
-                f"What is the meaning of the word: {KATAKANA} \n{f"Hint: {current_hint}" if current_hint != '' else ''}\n"
+                f"{HINT_TEXT}\nWhat is the meaning of the word: {KATAKANA}\n"
             )
 
             if ANSWER.lower() == MEANING.lower():
-                print(f"Correct! {MEANING} means {KATAKANA} ({ROMANJI})")
-                break
+                return f"Correct! {MEANING} means {KATAKANA} ({ROMANJI})"
             elif ANSWER.lower() == ROMANJI.lower():
                 print("Correct! This is the romanji reading. What is the meaning?")
-            else:
-                print(f"Wrong!")
-                TRY_AGAIN = input("Do you want to try again? (y/N/hint)\n")
-                if TRY_AGAIN == "hint":
-                    current_hint = next(HINT)
-                elif TRY_AGAIN == "N":
-                    print(f"The correct answer is: {MEANING} ({ROMANJI})")
+                continue
+
+            print(f"Wrong!")
+            TRY_AGAIN = input("Do you want to try again? (y/N/hint)\n")
+
+            if TRY_AGAIN == "hint":
+                current_hint = next(HINT)
+            elif TRY_AGAIN == "N":
+                return f"The correct answer is: {MEANING} ({ROMANJI})"
             print("\n")
+
+        return ""

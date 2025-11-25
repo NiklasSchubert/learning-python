@@ -1,14 +1,16 @@
+from collections import Counter
 from random import sample, shuffle, choice
 from typing import TypedDict
 from .mode import Mode
 from ...word_loader.word import Word
 
 type Grid = list[list[str | None]]
+type FilledGrid = list[list[str]]
 
 
 class GridResult(TypedDict):
     words: list[str]
-    grid: Grid
+    grid: FilledGrid
 
 
 class WordGrid:
@@ -24,103 +26,144 @@ class WordGrid:
     ]
 
     def _expand_grid(self, grid: Grid) -> Grid:
-        WIDTH = max(len(row) for row in grid) if grid else 1
-        grid.append([None] * WIDTH)
-        for row in grid:
-            row.append(None)
+        width = max((len(row) for row in grid), default=1)
+        # existing rows get one appended None; add a new row of length (width + 1)
+        new_rows = [row[:] + [None] for row in grid]
+        new_rows.append([None] * (width + 1))
+        return new_rows
 
-    def _expand_grid_to(self, grid: Grid, min_rows: int, min_cols: int):
-        while len(grid) < min_rows:
-            grid.append([None] * (len(grid[0]) if grid else 0))
-        for i in range(len(grid)):
-            while len(grid[i]) < min_cols:
-                grid[i].append(None)
+    def _expand_grid_to(self, GRID: Grid, MINIMUM_ROWS: int, MINIMUM_COLS: int) -> Grid:
+        CURRENT_ROWS = len(GRID)
+        CURRENT_COLS = len(GRID[0]) if GRID and GRID[0] else 0
+        TARGET_ROWS = max(CURRENT_ROWS, MINIMUM_ROWS)
+        TARGET_COLS = max(CURRENT_COLS, MINIMUM_COLS)
+
+        new_grid: Grid = []
+        for INDEX in range(TARGET_ROWS):
+            if INDEX < CURRENT_ROWS:
+                row = GRID[INDEX][:]
+                if len(row) < TARGET_COLS:
+                    row = row + [None] * (TARGET_COLS - len(row))
+                new_grid.append(row)
+            else:
+                new_grid.append([None] * TARGET_COLS)
+        return new_grid
 
     def _place(
         self,
-        grid: Grid,
-        word: str,
-        r: int,
-        c: int,
-        dr: int,
-        dc: int,
-    ):
-        for INDEX, CHAR in enumerate(word):
-            rr = r + dr * INDEX
-            cc = c + dc * INDEX
-            grid[rr][cc] = CHAR
+        GRID: Grid,
+        TEXT: str,
+        START_ROW: int,
+        START_COL: int,
+        ROW_DIRECTION: int,
+        COL_DIRECTION: int,
+    ) -> Grid:
+        NEW_GRID = [ROW[:] for ROW in GRID[:]]
+        for INDEX, CHAR in enumerate(TEXT):
+            ROW_INDEX = START_ROW + ROW_DIRECTION * INDEX
+            COL_INDEX = START_COL + COL_DIRECTION * INDEX
+            NEW_GRID[ROW_INDEX][COL_INDEX] = CHAR
+        return NEW_GRID
 
-    def _place_word(self, grid: Grid, word: str):
+    def _place_word(self, GRID: Grid, WORD: str) -> Grid:
+        current_grid = [row[:] for row in GRID[:]]
+
         while True:
-            directions = self._DIRECTIONS[:]
-            shuffle(directions)
+            DIRECTIONS = self._DIRECTIONS[:]
+            ROW_INDICES = list(range(len(current_grid)))
+            COL_INDICES = list(
+                range(len(current_grid[0]) if current_grid and current_grid[0] else 0)
+            )
 
-            rows = list(range(len(grid)))
-            cols = list(range(len(grid[0]) if grid and grid[0] else 0))
-            shuffle(rows)
-            shuffle(cols)
+            shuffle(DIRECTIONS)
+            shuffle(ROW_INDICES)
+            shuffle(COL_INDICES)
 
-            for dr, dc in directions:
-                for r in rows:
-                    for c in cols:
-                        coords = [(r + dr * i, c + dc * i) for i in range(len(word))]
+            for DIRECTION_ROW, DIRECTION_COL in DIRECTIONS:
+                for START_ROW in ROW_INDICES:
+                    for START_COL in COL_INDICES:
+                        COORDS = [
+                            (
+                                START_ROW + DIRECTION_ROW * i,
+                                START_COL + DIRECTION_COL * i,
+                            )
+                            for i in range(len(WORD))
+                        ]
 
-                        if any(rr < 0 or cc < 0 for rr, cc in coords):
+                        WORD_END_INDEX = len(WORD) - 1
+                        if (
+                            START_ROW + DIRECTION_ROW * WORD_END_INDEX < 0
+                            or START_COL + DIRECTION_COL * WORD_END_INDEX < 0
+                        ):
                             continue
 
-                        is_collision = False
-                        for rr, cc in coords:
-                            if (
-                                rr < len(grid)
-                                and cc < len(grid[rr])
-                                and grid[rr][cc] is not None
-                            ):
-                                is_collision = True
-                                break
-                        if is_collision:
+                        IS_COLLISION = any(
+                            ROW_INDEX < len(current_grid)
+                            and COL_INDEX < len(current_grid[ROW_INDEX])
+                            and current_grid[ROW_INDEX][COL_INDEX] is not None
+                            for ROW_INDEX, COL_INDEX in COORDS
+                        )
+                        if IS_COLLISION:
                             continue
 
-                        max_r = max(rr for rr, _ in coords) + 1
-                        max_c = max(cc for _, cc in coords) + 1
-                        self._expand_grid_to(grid, max_r, max_c)
-                        self._place(grid, word, r, c, dr, dc)
-                        return
+                        MAX_ROW_NEEDED = max(row_index for row_index, _ in COORDS) + 1
+                        MAX_COL_NEEDED = max(col_index for _, col_index in COORDS) + 1
 
-            self._expand_grid(grid)
+                        EXPANDED = self._expand_grid_to(
+                            current_grid, MAX_ROW_NEEDED, MAX_COL_NEEDED
+                        )
+                        PLACED = self._place(
+                            EXPANDED,
+                            WORD,
+                            START_ROW,
+                            START_COL,
+                            DIRECTION_ROW,
+                            DIRECTION_COL,
+                        )
+                        return PLACED
 
-    def generate_grid(self, words: list[Word], amount: int) -> GridResult:
-        CHOSEN_WORDS = [WORD.get("katakana") for WORD in sample(words, amount)]
+            current_grid = self._expand_grid(current_grid)
 
-        GRID: Grid = []
-        for WORD in CHOSEN_WORDS:
-            self._place_word(GRID, WORD)
+    def generate_grid(
+        self, words: list[Word], number_of_words: int, FILLER: set[str]
+    ) -> GridResult:
+        CHOSEN_KATAKANA_WORDS = [
+            word.get("katakana") for word in sample(words, number_of_words)
+        ]
 
-        return GridResult(
-            grid=[[cell if cell is not None else " " for cell in row] for row in GRID],
-            words=CHOSEN_WORDS,
-        )
+        grid: Grid = []
+        for KATAKANA in CHOSEN_KATAKANA_WORDS:
+            grid = self._place_word(grid, KATAKANA)
 
-        UNIQUE_LETTERS = {letter for word in words for letter in word.get("katakana")}
-        # return [[cell if cell is not None else choice(UNIQUE_LETTERS) for cell in row] for row in GRID]
+        FILLED_GRID = [
+            [CELL if CELL is not None else choice(list(FILLER)) for CELL in ROW]
+            for ROW in grid
+        ]
+
+        return GridResult(grid=FILLED_GRID, words=CHOSEN_KATAKANA_WORDS)
 
 
 class WordSearchPuzzle(Mode):
-    _GRID = WordGrid()
+    _GRID_GENERATOR = WordGrid()
 
-    def __init__(self, WORDS: list[Word]):
-        super().__init__(WORDS)
+    def __init__(self, words: list[Word]):
+        super().__init__(words)
 
-    def question(self):
+    def question(self) -> str:
+        DEBUG = True
+        UNIQUE_LETTERS = {
+            LETTER for WORD in self.WORDS for LETTER in WORD.get("katakana")
+        }
+        FILLER_LETTERS = {"ー"} if DEBUG else UNIQUE_LETTERS
+        RESULT = self._GRID_GENERATOR.generate_grid(self.WORDS, 3, FILLER_LETTERS)
+        for ROW in RESULT["grid"]:
+            print(*ROW, " ")
 
-        RESULT = self._GRID.generate_grid(self.WORDS, 3)
-        for row in RESULT.GRID:
-            print(*row, " ")
-
-        ANSWER = ",".join(RESULT.words)
-        RESPONSE = input(
-            "Which words can you spot? Enter all 3 seperated by commas in english:\n"
-        )
-        if RESPONSE == ANSWER:
-            print("Correct!")
+        ANSWER = RESULT.get("words")
+        if DEBUG:
+            print(f"Spoilers: {ANSWER}\n")
+        RESPONSE = input("Which words can you spot? Enter all 3 separated by commas:\n")
+        if Counter(RESPONSE.split(",")) == Counter(ANSWER):
+            return "Correct!"
         else:
-            print(f"Wrong! The correct answers were: {ANSWER}")
+            return f"Wrong! The correct answers were: {ANSWER}"

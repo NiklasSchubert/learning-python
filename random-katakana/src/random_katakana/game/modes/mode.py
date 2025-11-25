@@ -7,5 +7,5 @@ class Mode(ABC):
         self.WORDS = WORDS
 
     @abstractmethod
-    def question(self):
+    def question(self) -> str:
         pass
