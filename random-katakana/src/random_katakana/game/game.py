@@ -15,10 +15,10 @@ class Game:
         3: "Exit Game",
     }
 
-    _WORDS: list[Word] = []
+    _words: list[Word] = []
 
     def __init__(self, LOADER: WordLoader, UI: UI):
-        self._WORDS = LOADER.load()
+        self._words = LOADER.load()
 
         while True:
             try:
@@ -30,12 +30,10 @@ class Game:
 
                 GAME_MODE = self.GAME_MODES.get(RESPONSE, None)
                 if GAME_MODE != None:
-                    MODE = GAME_MODE(self._WORDS)
-                    RESPONSE = MODE.question()
-                    print(RESPONSE)
+                    MODE = GAME_MODE(UI, self._words)
+                    MODE.start()
 
                 if RESPONSE == 3:
                     break
             except Exception as e:
-                print(f"An error occurred: {e} \n")
-                input()
+                UI.show_error(repr(e))

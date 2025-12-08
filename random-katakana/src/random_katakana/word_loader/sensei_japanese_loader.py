@@ -1,7 +1,6 @@
 from .word_loader import WordLoader
 from requests import get
 from lxml import etree
-from lxml.etree import _Element
 from .word import Word
 
 
@@ -12,13 +11,22 @@ class SenseiJapaneseLoader(WordLoader):
         ).text
 
         PARSED_HTML = etree.HTML(RESPONSE)
-        TABLE_BODIES: list[_Element] = PARSED_HTML.xpath("//table//tbody")
+        TABLE_BODIES = PARSED_HTML.xpath("//table//tbody")
 
-        COLUMNS: list[list[str]] = [
+        COLUMNS: list[str] = [
             COLUMN.text or ""
             for BODY in TABLE_BODIES
             for COLUMN in BODY.xpath(".//td")[3:]
         ]
+
+        # COLUMNS: list[str] = []
+        # for BODY in TABLE_BODIES:
+        #     # BODY.xpath(...) should normally return a list; guard against unexpected types
+        #     cells = BODY.xpath(".//td")
+        #     if not isinstance(cells, (list, tuple)):
+        #         continue
+        #     for COLUMN in cells[3:]:
+        #         COLUMNS.append(COLUMN.text or "")
 
         WORDS: list[Word] = [
             {"katakana": k, "romanji": r, "meaning": m}

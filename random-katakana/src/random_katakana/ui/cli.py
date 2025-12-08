@@ -1,4 +1,3 @@
-from os import system
 from ..ui.ui import UI
 
 
@@ -9,3 +8,12 @@ class CLI(UI):
             print(f"{INDEX}: {OPTION_TEXT}")
         RESPONSE = int(input("Enter the number of your choice: "))
         return RESPONSE
+
+    def show_text(self, text: str) -> None:
+        return print(text)
+
+    def request_input(self, text: str) -> str:
+        return input(text)
+
+    def show_error(self, text: str) -> None:
+        print(f"An error occurred: {text} \n")

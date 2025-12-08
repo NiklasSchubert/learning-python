@@ -4,5 +4,5 @@ from .word import Word
 
 class WordLoader(ABC):
     @abstractmethod
-    def load(self) -> Word:
+    def load(self) -> list[Word]:
         pass
